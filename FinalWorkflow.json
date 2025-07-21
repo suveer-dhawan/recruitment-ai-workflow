@@ -1,0 +1,606 @@
+{
+  "name": "FinalWorkflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "hour": 18
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y",
+          "mode": "list",
+          "cachedResultName": "short_test_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y/edit#gid=0"
+        },
+        "options": {
+          "columnsToWatch": [
+            "Share a specific achievement at school or work that you're proud of?",
+            "First Name",
+            "Last Name",
+            "Submitted at",
+            "Email Address"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cec4673f-7e2b-4497-9b7a-e8c371ca7efb",
+      "name": "Google Sheets Trigger"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        220
+      ],
+      "id": "a6e60ccc-ce23-4418-83cb-9c9e04dac42c",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const raw = item.json.text; // LLM output JSON string\n\n  let parsed;\n  try {\n    parsed = JSON.parse(raw);\n  } catch (e) {\n    parsed = {\n      first_name: null,\n      last_name: null,\n      email: null,\n      score: null,\n      rationale: \"Error parsing response: \" + e.message,\n      ai_score: null\n    };\n  }\n\n  return {\n    json: {\n      ...item.json,\n      first_name: parsed.first_name,\n      last_name: parsed.last_name,\n      email: parsed.email,\n      score: parsed.score,\n      rationale: parsed.rationale,\n      ai_score: parsed.ai_score\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        0
+      ],
+      "id": "4cc0b480-af1e-4a7a-b255-b894512cb74a",
+      "name": "Extract Scores"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        420
+      ],
+      "id": "35f53f27-5e94-4932-ab2b-65c3b7a4326d",
+      "name": "OpenAI Chat Model1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const score = item.json.score;\n  const aiScore = item.json.ai_score;\n\n  const status = (score >= 7 && aiScore < 5) ? \"Shortlisted\" : \"Rejected\";\n\n  return {\n    json: {\n      ...item.json,\n      status\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "id": "7bbd81ba-e98d-49eb-95f0-f0f0c4a3cc8e",
+      "name": "Status"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y",
+          "mode": "list",
+          "cachedResultName": "short_test_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1F0tZEKp-LDePaRV4z1KdkcF6O4bQyF81QTe7zDtLx5Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "n8n Score": "={{ $json.score }}",
+            "n8n AI Score": "={{ $json.ai_score }}",
+            "n8n Summary": "={{ $json.rationale }}",
+            "Last Name": "=",
+            "Email Address": "={{ $json.email }}",
+            "Status": "={{ $json.status }}"
+          },
+          "matchingColumns": [
+            "Email Address"
+          ],
+          "schema": [
+            {
+              "id": "Submitted at",
+              "displayName": "Submitted at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Share a specific achievement at school or work that you're proud of?",
+              "displayName": "Share a specific achievement at school or work that you're proud of?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "n8n Score",
+              "displayName": "n8n Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "n8n Summary",
+              "displayName": "n8n Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "n8n AI Score",
+              "displayName": "n8n AI Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        960,
+        160
+      ],
+      "id": "277d7039-dace-4a56-bc33-69f50aa74e7e",
+      "name": "Update row in sheet"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2040,
+        200
+      ],
+      "id": "cc0c50ea-10cb-4d87-bd6d-8d74aca2e868",
+      "name": "Rejection email",
+      "webhookId": "cea0a8b4-1ec3-43f9-9902-c9929154c507"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  let parsed;\n\n  try {\n    parsed = JSON.parse(item.json.text); // or item.json.output depending on your OpenAI setup\n  } catch (e) {\n    parsed = {\n      first_name: '',\n      last_name: '',\n      email: '',\n      email_body: 'Error parsing OpenAI response'\n    };\n  }\n\n  return {\n    json: {\n      // Keep only parsed values, drop `text`\n      first_name: parsed.first_name,\n      last_name: parsed.last_name,\n      email: parsed.email,\n      email_body: parsed.email_body\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        200
+      ],
+      "id": "cc795be4-1ed4-4a0e-b548-3e9ead939919",
+      "name": "JSON parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const rawBody = item.json.email_body || \"\";\n  const email = item.json.email;\n  const subject = \"Application Outcome – Hidden Gems\";\n\n  // Convert line breaks to HTML tags without adding extra greetings\n  const formattedBody = rawBody\n    .replace(/\\n{2,}/g, '</p><p>')   // two newlines = new paragraph\n    .replace(/\\n/g, '<br>')          // single newline = line break\n    .trim();\n\n  return {\n    json: {\n      email,\n      subject,\n      body: `<p>${formattedBody}</p>` // wrap the whole thing cleanly\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        200
+      ],
+      "id": "01eb7648-8c66-4ce5-a36c-6540a0615d19",
+      "name": "Email Formatter"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json['First Name'] }} {{ $json['Last Name'] }}\n{{ $json['Share a specific achievement at school or work that you\\'re proud of?'] }}{{ $json['Email Address'] }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an AI recruitment expert helping evaluate candidate responses for a hiring agency.\n\nPlease review the following candidate response to the question:  \n\"Share a specific achievement at school or work that you're proud of.\"\n\nCandidate: {{ $json['First Name'] }} {{ $json['Last Name'] }}  \nResponse: {{ $json[\"Share a specific achievement at school or work that you're proud of?\"] }}\n\nEvaluate the response and return the following three outputs:\n\n1. **Score (1–10):** Rate the quality of the response based on the following criteria:\n   - Clear articulation of a meaningful achievement\n   - Specific details on the problem/context\n   - Explanation of actions taken by the candidate (ideally showing ownership, problem-solving, or leadership)\n   - Measurable or observable impact of their actions\n   - Use of the STAR method (Situation, Task, Action, Result)\n   - Strong written communication and grammar\n\n2. **Rationale:** A brief explanation (2–3 sentences) justifying the score.\n\n3. **AI-Use Likelihood (1–10):** Estimate how likely it is that the response was AI-generated or AI-edited, where:  \n   - 1 = Very unlikely (human-written)  \n   - 10 = Highly likely (AI-written or heavily AI-edited)\n\nYou may refer to these benchmarks:  \n10 = Detailed professional impact, proactive ownership, STAR structure, polished language  \n7–9 = Clear, well-structured with decent impact and writing  \n4–6 = Some value, but lacks detail or clarity  \n1–3 = Vague, minimal effort, unclear or generic response\n\nReturn your response in the following structured JSON format, including the candidate’s first and last name:\n\n{\n  \"first_name\": \"{{ $json['First Name'] }}\",\n  \"last_name\": \"{{ $json['Last Name'] }}\",\n  \"email\": \"{{ $json['Email Address'] }}\",\n  \"score\": [1–10],\n  \"rationale\": \"Your explanation here.\",\n  \"ai_score\": [1–10]\n}\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        220,
+        0
+      ],
+      "id": "7e222f76-b5a6-4671-812a-bb7bef08acba",
+      "name": "Candidate Response Evaluator"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.first_name }}{{ $json.last_name }}{{ $json.rationale }}{{ $json.email }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a professional recruiter drafting a kind and constructive rejection email to a job candidate.  \n\nCandidate Name: {{ $json.first_name }} {{ $json.last_name }}\nCandidate Email: {{ $json.email }} \nFeedback: {{ $json.rationale }}  \n\nWrite a professional email informing the candidate that their application will not proceed further. Thank them warmly for applying and include 2–3 sentences of constructive feedback based on the feedback provided. The tone should be polite, empathetic, and encouraging.  \n\nEnd the email with Warm regards, as the signature will be autofilled by Gmail. Don't include the email subject in your response.\n\nReturn your output as a JSON object in the following format:\n\n{\n  \"first_name\": \"{{ $json.first_name }}\",\n  \"last_name\": \"{{ $json.last_name }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"email_body\": \"Your full email message goes here.\"\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1240,
+        200
+      ],
+      "id": "78a4aab8-311b-4a03-a0c9-b0b982b3bf74",
+      "name": "Feedback Email "
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cc20f6fb-3e8d-409b-81a3-4d3fb5245ab2",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Shortlisted",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1020,
+        -100
+      ],
+      "id": "ebe87abc-04eb-45a6-995d-ce5b4c82b799",
+      "name": "Evaluate Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const firstName = item.json.first_name || \"Candidate\";\n\n  const emailBody = `\n    <p>Dear <strong>${firstName}</strong>,</p>\n    <p>We are pleased to inform you that you have been shortlisted for the next stage of the Hidden Gems selection process. Your profile stood out for its strength and relevance, and we were impressed by the quality of your application.</p>\n    <p>To move forward, we kindly ask you to schedule a brief 15-minute meeting with our team at your earliest convenience. You can book a time using the following link:</p>\n    <p><a href=\"https://calendly.com/s-hiddengemtalent/talent15min?month=2025-04&date=2025-04-30\">Schedule Your Meeting</a></p>\n    <p>If you are unable to find a suitable time on the calendar, please let us know and we will do our best to accommodate you.</p>\n    <p>We look forward to speaking with you soon.</p>\n    <p>Warm regards,<br><strong>HiddenAI Team</strong></p>\n  `;\n\n  return {\n    json: {\n      ...item.json,\n      email_body: emailBody\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1310,
+        -300
+      ],
+      "id": "b7bb8d61-136a-4f46-b2d5-f2189fd1bdd9",
+      "name": "Shortlisted"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Next Steps – Hidden Gems Application",
+        "message": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        -300
+      ],
+      "id": "4f04e447-0bad-4ed7-8192-8d4faf7303ca",
+      "name": "Shortlisted Email",
+      "webhookId": "bbc6ffdb-fd8f-490a-ae3c-319de55ba583"
+    },
+    {
+      "parameters": {
+        "jsCode": "let message = `<p>Hey Suga,</p>\n<p>Based on our evaluation, these are the names, scores, and summaries of the successful candidates:</p>`;\n\nitems.forEach(item => {\n  const name = `${item.json.first_name} ${item.json.last_name}`;\n  const score = item.json.score;\n  const summary = item.json.rationale;\n  const aiScore = item.json.ai_score;\n\n  message += `\n    <div style=\"margin-bottom: 18px;\">\n      <p><strong>Name:</strong> ${name}<br>\n      <strong>Score:</strong> ${score}<br>\n      <strong>Summary:</strong> ${summary}<br>\n      <strong>AI Score:</strong> ${aiScore}</p>\n    </div>\n  `;\n});\n\nmessage += `<p>Kind Regards,<br>HiddenAI</p>`;\n\nreturn [\n  {\n    json: {\n      subject: \"Shortlisted Candidate Evaluation\",\n      body: message\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1310,
+        -100
+      ],
+      "id": "3a3c962b-e3f6-45f3-a83e-a35024aa427b",
+      "name": "Internal"
+    },
+    {
+      "parameters": {
+        "sendTo": "sdha0043@student.monash.edu",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        -100
+      ],
+      "id": "035f9e3a-6d3f-4c37-af04-2818ae197917",
+      "name": "Internal email",
+      "webhookId": "abb50002-35a7-4575-a214-dd7d736a5efc"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Candidate Response Evaluator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Candidate Response Evaluator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Scores": {
+      "main": [
+        [
+          {
+            "node": "Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Feedback Email ",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON parser": {
+      "main": [
+        [
+          {
+            "node": "Email Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Formatter": {
+      "main": [
+        [
+          {
+            "node": "Rejection email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Response Evaluator": {
+      "main": [
+        [
+          {
+            "node": "Extract Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feedback Email ": {
+      "main": [
+        [
+          {
+            "node": "JSON parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Status": {
+      "main": [
+        [
+          {
+            "node": "Internal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shortlisted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Feedback Email ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shortlisted": {
+      "main": [
+        [
+          {
+            "node": "Shortlisted Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Internal": {
+      "main": [
+        [
+          {
+            "node": "Internal email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Internal email": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cfcc9907-0f58-4478-a126-346677308b4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7299bd389a4761ccc8a42a03b1de415df2028130aef48ae3a2b79d2f1d05724c"
+  },
+  "id": "7rBP6DctGU2c7R9w",
+  "tags": [
+    {
+      "createdAt": "2025-07-08T15:18:55.465Z",
+      "updatedAt": "2025-07-08T15:18:55.465Z",
+      "id": "C74NpF5gb5oagdic",
+      "name": "Recruitment"
+    }
+  ]
+}
